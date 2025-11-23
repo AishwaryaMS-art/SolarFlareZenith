@@ -1,8 +1,8 @@
 import google.generativeai as genai
 from google.colab import userdata
 
-# Configure the API key using a Colab Secret
-GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')  # Ensure your key is saved in Colab secrets
+# Configure the API key using a Secret
+GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')  # Ensure your key is safe
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # Load the Gemini model
@@ -22,7 +22,7 @@ def solarflare_brain(user_input):
     return response.text
 
 
-# ----------- SAFE INFINITE LOOP FOR COLAB -------------
+# ----------- SAFE INFINITE LOOP -------------
 print("SolarFlare AI in Google Colab")
 print("Type 'exit' to stop.\n")
 
