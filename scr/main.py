@@ -44,7 +44,7 @@ used_jokes = []
 # -------------------------------------------------------
 # 4. OPENWEATHER API
 # -------------------------------------------------------
-OPENWEATHER_KEY = "25f3284fcdda4756a80dd1b917864b1a"  # <- REPLACE THIS
+OPENWEATHER_KEY = "Weather Agent"  # <- REPLACE THIS
 
 def get_weather(city):
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={OPENWEATHER_KEY}&units=metric"
