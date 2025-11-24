@@ -1,8 +1,12 @@
 import google.generativeai as genai
 from google.colab import userdata
+import requests # Moved import requests to the top
+import random # Ensure random is imported
+import re # Import regex for city extraction
 
 # Configure the API key using a Colab Secret
 GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')  # Ensure your key is saved in Colab secrets
+# Assuming GOOGLE_API_KEY is already set in the environment or a previous cell
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # Load the Gemini model
@@ -36,7 +40,7 @@ while True:
     answer = solarflare_brain(user_input)
     print("SolarFlare:", answer)
     print()  # spacing
-    personalities = {
+personalities = {
     "funny": "Speak in a humorous, playful, witty tone. Never repeat jokes.",
     "creative": "Respond with imaginative, artistic, and original ideas.",
     "friendly": "Be warm, positive and supportive.",
@@ -55,62 +59,101 @@ jokes = [
     "Why don’t skeletons fight each other? They don’t have the guts."
 ]
 
-import random
 random.shuffle(jokes)
 used_jokes = []
 
+# Your OpenWeather API key
+api_key = "Weather Agent"  # <--- UPDATED WITH YOUR NEW OPENWEATHER API KEY
+
+def get_weather(city):
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        temperature = data['main']['temp']
+        weather_description = data['weather'][0]['description']
+        humidity = data['main']['humidity']
+
+        # Curious, friendly response
+        reply = (
+            f"Oh! You want to know about {city}? 🌤️\n"
+            f"Well, it seems like the temperature is around {temperature}°C. "
+            f"And guess what? The weather is {weather_description}! "
+            f"The humidity is at {humidity}%, which is quite interesting, don't you think?"
+        )
+        return reply
+    else:
+        return f"Hmm… I couldn’t find the weather for '{city}'. Are you sure that’s a real place? 🤔"
+
 def chatbox_agent(user_input):
-    system_instruction = personalities[current_personality]
-    user_input_lower = user_input.lower()
+    global current_personality # Declare global to modify in this function
 
-    # Optional: simple greetings
-    greetings = ["hi", "hello", "hey"]
-    if any(greet in user_input_lower for greet in greetings):
-        return random.choice(["Hey there!", "Hello! How’s it going?", "Hi! What’s up?"])
+    user_lower = user_input.lower()
+    emotion_style = (
+        "Always use natural emojis. Never use **, *, or markdown formatting. "
+        "Speak in a curious, expressive, friendly tone. "
+        "Keep messages simple and human-like."
+    )
 
-    # Check if user wants a joke using multiple keywords
-    joke_keywords = ["joke", "funny", "laugh", "random"]
+    # Greeting
+    if any(g in user_lower for g in ["hi", "hello", "hey"]):
+        return random.choice([
+            "Heyy! 😊",
+            "Hello! What’s up? 🌟",
+            "Hi there! How can I help? 🌈"
+        ])
 
-    if any(word in user_input_lower for word in joke_keywords):
-        available_jokes = [j for j in jokes if j not in used_jokes]
-        if available_jokes:
-            joke = random.choice(available_jokes)
+    # Weather check
+    if "weather in" in user_lower or "temperature in" in user_lower or "forecast in" in user_lower:
+        match = re.search(r'(?:weather|temperature|forecast) in ([a-zA-Z\s]+)', user_lower)
+        if match:
+            city = match.group(1).strip()
+            return get_weather(city)
+        else:
+            return "Tell me the city name and I’ll fetch the weather for you! 🗺️✨"
+
+    # Joke request
+    if any(word in user_lower for word in ["joke", "funny", "laugh"]):
+        available = [j for j in jokes if j not in used_jokes]
+        if available:
+            joke = random.choice(available)
             used_jokes.append(joke)
         else:
-            joke = random.choice(jokes)  # reuse if all used
-
-        prompt = f"{system_instruction}\nTell a unique, funny version of this joke: {joke}"
+            joke = random.choice(jokes)
+        prompt = f"{personalities[current_personality]}\nTell this joke in your own creative style: {joke}"
     else:
-        prompt = f"{system_instruction}\nUser: {user_input}"
+        prompt = f"{personalities[current_personality]}\n{emotion_style}\nUser: {user_input}"
 
-    response = chat.send_message(prompt, generation_config={"temperature":1.0})
+    # Generate AI response
+    response = chat.send_message(prompt, generation_config={"temperature": 1.0})
     return response.text
 
-
-
-# 5️⃣ Safe infinite loop for Colab
-print("SolarFlare AI ChatBox ready!")
-print("Type 'exit' to stop or 'personality: funny' to change tone.\n")
+# -------------------------------------------------------
+# 6️⃣ MAIN LOOP
+# -------------------------------------------------------
+print("SolarFlare AI Activated! 🔥")
+print("Type 'exit' to quit.")
+print("Change personality using: personality: funny | friendly | sarcastic | creative | professional\n")
 
 while True:
     user_input = input("You: ")
 
-    # Exit command
     if user_input.lower() == "exit":
-        print("SolarFlare: Chat ended.")
+        print("SolarFlare: Goodbye! 👋")
         break
 
-    # Change personality dynamically
+    # Change personality
     if user_input.lower().startswith("personality:"):
         choice = user_input.split(":")[1].strip().lower()
         if choice in personalities:
             current_personality = choice
-            print(f"SolarFlare: Personality changed to {current_personality}.")
+            print(f"SolarFlare: Personality updated to {choice}! ✨")
         else:
-            print("SolarFlare: Unknown personality. Try friendly, funny, creative, sarcastic, professional.")
+            print("SolarFlare: Unknown personality 😅")
         continue
 
-    # Get AI response
-    answer = chatbox_agent(user_input)
-    print("SolarFlare:", answer)
+    # Normal chat
+    reply = chatbox_agent(user_input)
+    print("SolarFlare:", reply)
     print()
